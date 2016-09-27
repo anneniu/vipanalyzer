@@ -25,6 +25,8 @@ object MoerStreamingParser {
 
     val cstmt = lazyConn.mysqlConn.prepareCall("{call proc_InsertMoerNewArticle(?,?,?,?,?,?,?,?)}")
 
+    val urlSql = lazyConn.mysqlConn.prepareStatement("select * from article_info where url = ?")
+
     val lastTitle = lazyConn.jedisHget(RedisUtil.REDIS_HASH_NAME, pageUrl)
     val timeStamp = new Date().getTime
 
@@ -59,6 +61,14 @@ object MoerStreamingParser {
           val price = 0.0
           val url = "http://moer.jiemian.com/" + list.get(i).select("a").get(0).attr("href")
           val stock = ""
+
+          //查询url是否重复
+          urlSql.setString(1,url)
+          val blFlag = urlSql.executeQuery().next()
+
+          if(blFlag){
+            break()
+          }
 
           val sqlFlag = DBUtil.insertCall(cstmt, userId, title, read, buy, price, url, timeStamp, stock)
 

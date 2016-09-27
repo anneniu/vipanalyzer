@@ -28,6 +28,8 @@ object SnowballStreamingParser {
 
     val lastUrl = lazyConn.jedisHget(RedisUtil.REDIS_HASH_NAME, pageUrl)
 
+    val urlSql = lazyConn.mysqlConn.prepareStatement("select * from article_info where url = ?")
+
     var title = ""
     val user = doc.select("title").text()
 
@@ -105,6 +107,14 @@ object SnowballStreamingParser {
               }
 
               if (lastUrl == url) {
+                break()
+              }
+
+              //查询url是否重复
+              urlSql.setString(1,url)
+              val blFlag = urlSql.executeQuery().next()
+
+              if(blFlag){
                 break()
               }
 

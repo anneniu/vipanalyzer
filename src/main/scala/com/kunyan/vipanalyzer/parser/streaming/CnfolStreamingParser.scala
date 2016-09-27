@@ -25,6 +25,8 @@ object CnfolStreamingParser {
     val list = doc.select("div#Tab1 div.TabItem ul li")
     val cstmt = lazyConn.mysqlConn.prepareCall("{call proc_InsertCNFOLNewArticle(?,?,?,?,?,?,?,?)}")
 
+    val urlSql = lazyConn.mysqlConn.prepareStatement("select * from article_info where url = ?")
+
     val lastTitle = lazyConn.jedisHget(RedisUtil.REDIS_HASH_NAME, pageUrl)
     val timeStamp = new Date().getTime
 
@@ -55,6 +57,14 @@ object CnfolStreamingParser {
           val reproduce = child.select("div.HandleBox span:nth-of-type(2)").text.split(" ").last.toInt
           val comment = child.select("div.HandleBox span:nth-of-type(3)").text.split(" ").last.toInt
           val url = child.select("div.UserBox a.Tit").attr("href")
+
+          //查询url是否重复
+          urlSql.setString(1,url)
+          val blFlag = urlSql.executeQuery().next()
+
+          if(blFlag){
+            break()
+          }
 
           val sqlFlag = DBUtil.insertCall(cstmt, userId, title, recommended, reproduce, comment, url, timeStamp, "")
 

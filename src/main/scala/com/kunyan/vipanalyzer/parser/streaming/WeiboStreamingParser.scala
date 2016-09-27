@@ -26,6 +26,7 @@ object WeiboStreamingParser {
 
     val cstmt = lazyConn.mysqlConn.prepareCall("{call proc_InsertWeiboNewArticle(?,?,?,?,?,?,?,?)}")
 
+    val urlSql = lazyConn.mysqlConn.prepareStatement("select * from article_info where url = ?")
 
     try {
 
@@ -103,6 +104,14 @@ object WeiboStreamingParser {
 
                   val getUrl = url.split("ref=home")(0)
                   val totalUrl = "http://weibo.com" + getUrl + "type=comment"
+
+                  //查询url是否重复
+                  urlSql.setString(1,totalUrl)
+                  val blFlag = urlSql.executeQuery().next()
+
+                  if(blFlag){
+                    break()
+                  }
 
                   var result = "" //用户发的文章标题
 
@@ -183,7 +192,7 @@ object WeiboStreamingParser {
                   if (sqlFlag) {
                     lazyConn.sendTask(topic, StringUtil.toJson(Platform.WEIBO.id.toString, 1, totalUrl))
                   } else {
-                    VALogger.warn("MYSQL data has exception, stop topic for :  " + url)
+                    VALogger.warn("MYSQL data has exception, stop topic for :  " + totalUrl)
                   }
 
                 }

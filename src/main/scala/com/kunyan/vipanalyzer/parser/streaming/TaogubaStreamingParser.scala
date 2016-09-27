@@ -39,6 +39,8 @@ object TaogubaStreamingParser {
 
     val cstmtArticle = lazyConn.mysqlConn.prepareCall("{call proc_InsertTaogubaNewArticle(?,?,?,?,?,?,?)}")
 
+    val urlSql = lazyConn.mysqlConn.prepareStatement("select * from article_info where url = ?")
+
     val initial = lazyConn.jedisHget(RedisUtil.REDIS_HASH_NAME, pageUrl)
 
     var lastValue = 0L
@@ -122,6 +124,14 @@ object TaogubaStreamingParser {
 
                   val url = "http://www.taoguba.com.cn/Article" + "/" + objectID + "/" + otherID
                   val stock = ""
+
+                  //查询url是否重复
+                  urlSql.setString(1,url)
+                  val blFlag = urlSql.executeQuery().next()
+
+                  if(blFlag){
+                    break()
+                  }
 
                   val sqlFlag = DBUtil.insertCall(cstmtArticle, userID, title, 0, 0, url, timeStamp, stock)
 
